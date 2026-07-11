@@ -1,0 +1,158 @@
+Day 10 - Coding Practice
+
+🔹Ansible - Create Docker Containers for Multiple Applications [Internet -> Download Image -> Store on Server]
+
+- name: Setup Docker Container for Multiple Apps					-----> Today's work: Setup Multiple Applications
+  hosts: all										-----> for all servers
+  become: yes										-----> become administrator (root)
+  tasks:										-----> Think of to-do list
+    - name: Pull Web App Image								-----> job title
+      docker_image: 									-----> ask docker to manage as image
+	name: my-web-app								-----> Download the image named my-web-app
+	source: pull									-----> Pull (download) it from Docker Hub or another registry
+
+    
+    - name: Pull Database App Image							-----> Task 2
+      docker_image: 
+	name: my-database-app								-----> Download the database image
+	source: pull
+
+    - name: Run Web App Container							-----> Task 3
+      docker_container:									-----> Now you've download the image. Time to start a container. [Image -> Container]
+	name: web-app									-----> Give the container a name
+	image: my-web-app								-----> which image should it use? 
+	state: started									-----> start the container
+	published_ports:								-----> door (8080) 
+	  - "8080:80"
+
+    - name: Run Database App Container
+      docker_container:
+	name: Database-app
+	image: my-database-app
+	state: started
+	published_ports:								-----> MySQL normally listens on port 3306. 
+	  - "3306:3306"
+
+Interview Question
+Q: Difference between docker_image and docker_container?
+Answer: docker_image downloads/manages Docker images.
+        docker_container creates and manages running containers.
+
+🔹 Terraform - VPC with Private and Public Subnets [VPC -> Subnet -> Choose city area -> ready]
+resource "aws_vpc" "main" {								-----> Create one private network
+  cidr_block = "10.0.0.0/16"								-----> How large is the private netwook (This range decides how many IP addresses the VPC can have.)
+}
+
+resource "aws_subnet" "public" {							-----> Now divide the land. Think of making plots. One plot is a subnet.
+  vpc_id		= aws_vpc.main.id						-----> This subnet belongs to the VPC you just created.
+  cidr_block		= "10.0.1.0/24"							-----> This subnet gets a smaller IP range.
+  availability_zone	= "us-east-1b"							-----> where should AWS create it? Region = USA East, Availability Zone = 1b. Think of building one branch of your shop in one city area.
+}
+
+🔹 Kubernetes - Deploying StatefulSet [This is one of the most important Kubernetes concepts.]
+apiVersion: apps/v1
+kind: StatefulSet									-----> Create Pods with stable identities.
+metadata:
+  name: vishwesh-db
+spec:
+  serviceName: "vishwesh-db"								-----> Headless service name used by the StatefulSet. It helps each Pod have a stable network identity.
+  replicas: 3										-----> Create 3 pods.
+  selector: 
+    matchLabels:									-----> Which Pods belong here?
+      app: vishwesh-db
+  template:										-----> Blueprint for every Pod.
+    metadata:
+      labels:
+        app: vishwesh-db
+    spec:
+      containers:									-----> container specification
+	- name: db
+	  image: mysql:5.7								-----> use the MYSQL image.
+	  volumeMounts:									-----> Attach storage
+	    - mountPath: /var/lib/mysql							-----> mountPath- Where should storage appear inside the container? /var/lib/MySQL: This is where MYSQL stores its data. 
+	      name: mysql-storage
+  volumeClaimTemplates:									-----> This is the magic. Every Pod gets its own storage. If Pod-1 restarts, it get the same disk back.
+    - metadata:
+        name: mysql-storage
+      spec:
+	accessModes: ["ReadWriteOnce"]
+	resources: 
+	  requests:
+	    storage: 1Gi								-----> Each Pod gets a 1 GB persistent volume.
+
+Interview Question
+Q: Why StatefulSet instead of Deployment?
+Answer:
+StatefulSet provides stable Pod names, stable storage, and ordered deployment, making it suitable for databases like MySQL.
+
+🔹Jenkinsfile - Build and Deploy to Kubernetes [Code -> Build -> Login -> Push -> Deploy]
+pipeline {
+   agent any
+   environment {									-----> Store variables
+	IMAGE_NAME = 'vishwesh-web-app'							-----> Store the Docker Image name.
+	}
+   }
+   stages {
+	stage('Build Docker Image') {							-----> Stage1: Build image. Create Docker Image.
+	   steps {
+		script {
+		   docker.build("${env.IMAGE_NAME}")
+		}
+	   }
+	}
+   	stage('Push Docker Image') {							-----> Stage 2
+     	    steps {
+		script {
+	  	    docker.withRegistry('https://docker.io', 'docker-credntials'){	-----> docker.withRegistry() Push image, Login.
+	     	      docker.image("${env.IMAGE_NAME}").push('latest')			-----> push() - Upload Image.
+	 	    }
+		}
+	     }
+   	}
+   	stage('Deploy to Kubernetes') {
+     	    steps {
+		script {
+	  	   sh 'kubectl apply -f deployment.yaml'				-----> kubectl apply: Stage 3: Deploy to Kubernetes.
+		}
+     	    }
+   	}
+    }
+}
+
+🔹GitLab CI/CD - [Build -> Push -> Deploy] (same idea as Jenkins) 
+stages:
+  - build 										-----> Create image. 
+  - push
+  - deploy
+
+build:
+  stage: build
+  script: 
+    - docker build -t vishwesh-web-app .
+
+push:
+  stage: push
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"			-----> Push Login 
+    - docker push vishwesh-web-app							-----> Upload image
+
+deploy:											-----> Deploy application
+  stage: deploy
+  script:
+    - kubectl apply -f Kubernetes/deployment.yaml
+
+🔹Docker
+# Working Directory & COPY
+FROM ubuntu:22.04									-----> Use Ubuntu as the base image 
+WORKDIR /opt/vishwesh/devops-project							-----> Go inside the folder. If it doesn't exist, Docker creates it.
+COPY . /opt/vishwesh/devops-project/							-----> Copy everything from your project folder on your computer into the container. [Laptop Folder -> Container Folder]
+CMD ["ls", "-l", "/opt/vishwesh/devops-project"]					-----> When the container starts run to show the files in the project directory.
+
+#Real Path
+/opt/vishwesh/devops-project								-----> That's the folder where your project lives.
+
+
+Remember it as like:
+Terraform → Infrastructure → Ansible → Configuration → Docker → Containerization → Jenkins/GitLab → CI/CD → Kubernetes → Orchestration
+
+"First, Terraform provisions the infrastructure. Then Ansible configures the servers. Docker packages the application into containers. Jenkins or GitLab CI/CD builds, tests, and pushes the image. Finally, Kubernetes deploys, scales, and manages the containers in production."
