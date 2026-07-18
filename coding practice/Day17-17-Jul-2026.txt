@@ -1,0 +1,155 @@
+Day17- Multi-cloud Deployments, Auto-healing, and Advanced CI/CD
+
+- name: Configure Auto-healing for Web Server                               # → Gives a name to the Ansible playbook.     
+hosts: all                                                                  # run on all servers
+become: yes                                                                 # become admin first
+tasks:                                                                      # starts the list of automation tasks
+  - name: Ensure nginx service is running                                   # → Names the task to ensure Nginx is running.
+    service:                                                                # → Manages Linux services.
+      name: nginx                                                           # → Specifies the Nginx service.
+      state: started                                                        # → Starts the Nginx service if it is stopped.
+      enabled: yes                                                          # → Starts Nginx automatically after every reboot.
+  - name: Setup auto-start for nginx service                                # → Names the task for configuring automatic restart.
+  lineinfile:                                                               # → Adds or updates a specific line in a file.
+      path: /etc/ststemd/system/nginx.service.d/override.conf               # → Specifies the systemd override configuration file.
+      line: "Restart=always"                                                # → Configures systemd to always restart Nginx if it fails.
+      create: yes                                                           # → Creates the file if it doesn't exist.
+  - name: Reload systemd                                                    # → Names the task to reload systemd.
+    command: systemctl daemon-reload                                        # → Reloads systemd to apply the new configuration.
+
+🔹 Terraform - Multi-cloud Infrastructure with AWS and Azure
+#AWS VPC                 
+resource "aws_vpc" "main" {                                                 # → Creates an AWS Virtual Private Cloud (VPC).
+  cidr_block = "10.0.0.0/16"                                                # → Assigns the VPC IP address range.
+}
+
+#Azure VNet
+resource "azurem_virtual_network" "main" {                                  # → Creates an Azure Virtual Network (VNet).
+    name                = "vishwesh-vnit"                                   # → Sets the Azure VNet name.
+    location            = "East US"                                         # → Deploys the VNet in the East US region.
+    address_space       = ["10.0.0.0/16"]                                   # → Assigns the Azure VNet address range.
+    resource_group_name = azurem_resource_group.main.name                   # → Places the VNet inside the Azure Resource Group.
+}
+
+# EC2 instance in AWS
+resource "aws_instance" "vishwesh_ec2" {                                    # → Creates an AWS EC2 instance.
+  ami           = "ami-0abc1234abcd1234"                                    # → Specifies the Amazon Machine Image.
+  instance_type = "t2.micro"                                                # → Launches a t2.micro EC2 instance.
+  region        = "us-east-1"                                               # → Deploys the EC2 instance in the US East region (typically configured via the AWS provider).
+}
+
+# Virtual Machine in Azure
+resource "azurerm_linux_virtual_machine" "vishwesh_vm" {                    # → Creates an Azure Linux Virtual Machine.
+  name                  = "vishwesh-azure-vm"                               # → Sets the Azure VM name.
+  resource_group_name   = azurem_resource_group.main.name                   # → Places the VM in the Resource Group.
+  location              = azurem_resource_group.main.location               # → Deploys the VM in the Resource Group's region.
+  size                  = "Standard_B1s"                                    # → Creates a Standard_B1s Azure VM.
+  admin_username        = "azureuser"                                       # → Sets the VM administrator username.
+  admin_password        = "P@ssw0rd123!"                                    # → Sets the VM administrator password.
+}
+
+🔹Kubernetes - Self-Healing with Liveness and Readiness Probes
+apiVersion: apps/v1                                                         # → Uses the Kubernetes Apps API.
+kind: Deployment                                                            # → Creates a Deployment resource.
+metadata:                                                                   # → Stores Deployment metadata.
+  name: vishwesh-web-app                                                    # → Names the Deployment.
+spec:                                                                       # → Defines the Deployment configuration.
+  replicas: 3                                                               # → Runs three Pod replicas.
+  selector:                                                                 # → Selects Pods using labels.           
+    matchLabels:                                                            # → Matches Pods with the specified labels.
+      app: vishwesh-web-app                                                 # → Labels the application Pods.
+  template:                                                                 # → Defines the Pod template.
+    metadata:                                                               # → Starts the container definition.
+      labels:                
+        app: vishwesh-web-app
+    spec:        
+      containers:
+        - name: nginx                                                       # → Names the container.
+          image: nginx                                                      # → Pulls and runs the Nginx image.
+          ports:                                                            # → Defines the container ports.
+            - containerPort: 80                                             # → Exposes port 80 inside the container.
+            livenessProbe:                                                  # → Checks whether the container is alive.
+              httpGet:                                                      # → Performs an HTTP health check.
+                path: /healthz                                              # → Sends the health check request to the /healthz endpoint.
+                port: 80                                                    # → Checks the application on port 80.
+              initialDelaySeconds: 5                                        # → Waits 5 seconds before the first health check.
+              periodSeconds: 10                                             # → Runs the liveness check every 10 seconds.
+            readinessProbe:                                                 # → Checks whether the application is ready to receive traffic.
+              httpGet:                                                      # → Performs an HTTP readiness check.
+                path: /healthz                                              # → Uses the /healthz endpoint for readiness.
+                port: 80                                                    # → Checks readiness on port 80.
+              initialDelaySeconds: 5                                        # → Waits 5 seconds before the first readiness check.
+              periodSeconds: 10                                             # → Runs the readiness check every 10 seconds.
+
+🔹Jenkinsfile - Rolling Deployment with kubernetes
+pipeline {                                                                  # → Starts the Jenkins pipeline.
+    agent any                                                               # → Runs the pipeline on any available Jenkins agent.
+    environment {                                                           # → Defines environment variables.
+        IMAGE_NAME = 'vishwesh-web-app'                                     # → Sets the Docker image name.
+    }
+    stages {                                                                # → Starts the pipeline stages.
+        stage('Build') {                                                    # → Defines the build stage.
+            steps {       
+                echo 'Building Docker image...'                             # → Prints the build message.
+                docker.build("${env.IMAGE_NAME}")                           # → Builds the Docker image.
+            }
+        }
+        stage('Test') {                                                     # → Defines the testing stage.
+            steps {      
+                echo 'Running tests...'                                     # → Prints the testing message.
+            }
+        }
+        stage('Deploy to Kubernetes') {                                     # → Defines the deployment stage.
+            steps {    
+                script {                                                    # → Executes shell commands.
+                    sh 'kubectl apply -f kubernetes/deployment/.yaml'       # → Deploys the application to Kubernetes.
+                    sh 'kubectl rollout status deployment/vishwesh-web-app' # → Waits until the rolling deployment completes successfully.
+                }
+            }
+        }
+    }
+}
+
+
+🔹GitLab CI/CD - Multi-cloud Deployment
+stages:                                                                     # → Defines the CI/CD pipeline stages.
+  - build                                                                   # → First stage builds the application.
+  - push                                                                    # → Second stage pushes the Docker image.
+  - deploy                                                                  # → Third stage deploys the application.
+
+build:                                                                      # → Starts the build job.
+  stage: build
+  script:
+    - docker build -t vishwesh-web-app .                                    # → Builds the Docker image.
+
+push:                                                                       # → Starts the image push job.
+  stage: push
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"        # → Logs in to the Docker registry.
+    - docker push vishwesh-web-app                                          # → Pushes the Docker image to the registry.
+
+deploy_aws:                                                                 # → Starts deployment to the AWS Kubernetes cluster.
+  stage: deploy
+  script:
+    - kubectl --context=aws-cluster apply -f kubernetes/deployment.yaml     # → Deploys the application to the AWS cluster.
+
+deploy_azure:                                                               # → Starts deployment to the Azure Kubernetes cluster.
+  stage: deploy
+  script:
+    - kubectl --context=azure-cluster apply -f kubernetes/deployment.yaml   # → Deploys the application to the Azure cluster.
+
+🔹 Docker
+# MySQL Container (Note - Here " \" means to be continue - it can be written in a single line")
+docker run -d \                                                             # → Runs the container in detached (background) mode.
+--name vishwesh-mysql \                                                     # → Assigns the container name vishwesh-mysql.
+-e MYSQL_ROOT_PASSWORD=root \                                               # → Sets the MySQL root password using an environment variable.
+mysql:8                                                                     # → Uses the official MySQL version 8 Docker image.
+
+# Real Path
+/var/lib/mysql                                                              # → Default directory where MySQL stores its database files inside the container.
+
+
+Remember it as like: 
+👨‍💻 Developer → Git Push → Jenkins/GitLab CI → Build → Test → Docker Image → Push to Registry → Terraform (Provision AWS + Azure Infrastructure) 
+→ Ansible (Configure Auto-Healing) → Kubernetes (Self-Healing with Liveness & Readiness Probes) → Deploy to AWS & Azure Clusters 
+→ 🚀 Application Running
