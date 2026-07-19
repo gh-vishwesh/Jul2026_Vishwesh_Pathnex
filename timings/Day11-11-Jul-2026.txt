@@ -1,7 +1,7 @@
 Day 10
 #Today's agenda
-o approx 1 hrs prepared notes
-o 1.5 hr Read today's taught topics
+o approx 2 hrs prepared notes
+o 1.5 hr Read docker
 o 1 hrs coding practice
 o 0.5 hrs prepared for evening class
 o 0.5 hrs Revised previous notes and practiced

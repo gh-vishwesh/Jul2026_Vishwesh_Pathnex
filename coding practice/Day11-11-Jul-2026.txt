@@ -156,3 +156,4 @@ Remember it as like:
 Terraform → Infrastructure → Ansible → Configuration → Docker → Containerization → Jenkins/GitLab → CI/CD → Kubernetes → Orchestration
 
 "First, Terraform provisions the infrastructure. Then Ansible configures the servers. Docker packages the application into containers. Jenkins or GitLab CI/CD builds, tests, and pushes the image. Finally, Kubernetes deploys, scales, and manages the containers in production."
+
