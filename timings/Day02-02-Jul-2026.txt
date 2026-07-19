@@ -1,0 +1,15 @@
+2 hour coding learned about
+	branch
+	how to push files from git to github
+1 hour for theory learned some basic questions like
+	What is Git?
+	What is GitHub?
+	What is the difference between Git and GitHub?
+	What is a repository?
+	What is the .git folder?
+	What is the Working Directory?
+	What is the Staging Area?
+	What does git add actually do?
+	What does git commit actually do?
+	What does git push actually do?
+
