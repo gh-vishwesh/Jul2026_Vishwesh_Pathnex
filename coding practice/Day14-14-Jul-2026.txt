@@ -1,0 +1,100 @@
+Day 14 - Kubernetes Advanced Concepts & Multi-Environment Deployments
+
+## 🔹 Ansible - Setup Nginx with Reverse Proxy
+
+'''yaml
+- name: Setup Nginx with Reverse Proxy						→ Gives a name to the Ansible playbook.
+  hosts: all									→ run on all servers
+  become: yes									→ become admin first
+  tasks:									→ Starts the list of automation tasks.
+    - name: Install nginx							→ Names the task for installing Nginx.
+      yum:									→ Uses the YUM package manager.
+	name: nginx								→ Specifies the Nginx package.
+	state: present								→ Ensures Nginx is installed.
+    - name: configure nginx as reverse proxy					→ Names the task for configuring reverse proxy.
+      template: 								→ Copies and renders a Jinja2 template to the server.
+	src: reverse-proxy.conf.j2						→ Source template file on the Ansible control node.
+	dest: /etc/nginx/conf.d/reverse-proxy.conf				→ Destination path on the target server.
+    - name: Restart nginx service						→ Names the task to restart Nginx.
+      service: 									→ Manages Linux services.
+	name: nginx								→ Specifies the Nginx service.
+	state: restarted 							→ Restarts the Nginx service to apply changes.
+	enabled: yes								→ Starts Nginx automatically after reboot.
+
+🔹 Terraform - Ingress with Nginx Controller
+apiVersion: networking.k8s.io/v1						→ Uses the Kubernetes Networking API.
+kind: Ingress									→ Creates an Ingress resource.
+metadata:									→ Stores object metadata.
+  name: vishwesh-ingress							→ Names the Ingress resource.
+  annotations:									→ Adds special configuration for the Ingress controller.
+    nginx.ingress.kubernetes.io/rewrite-target: /				→ Rewrites incoming URLs to the root path.
+spec:										→ Defines the Ingress configuration.
+  rules:									→ Starts the routing rules.
+    - host: vishwesh.local							→ Routes requests for this hostname.
+      http:									→ Defines HTTP routing rules.
+	paths:									→ Lists URL paths to route.
+	- path: /								→ Matches the root URL.
+	  pathType: Prefix							→ Matches all URLs starting with "/".
+	  backend:								→ Specifies the destination service.
+	    service:								→ Refers to a Kubernetes Service.
+	      name: vishwesh-service						→ Sends traffic to this Service.
+	      port:								→ Specifies the Service port.
+		number: 80							→ Routes traffic to port 80.
+
+🔹 Jenkinsfile - Build, Test, and Deploy with Stages
+pipeline {									→ Starts the Jenkins pipeline.
+    agent any									→ Runs the pipeline on any available Jenkins agent.
+    stages {									→ Starts the pipeline stages.
+	stage('Build'){								→ Defines the build stage.
+	    steps {								→ Starts the commands for the stage.
+		echo 'Building Docker Image...'					→ Prints a build message in Jenkins logs.
+		docker.build('vishwesh-web-app')				→ Builds a Docker image.
+	    }
+	}
+	stage('Test') {								→ Defines the testing stage.
+	    steps {
+		echo 'Running tests...'						→ Prints a test message.
+	    }
+	}
+	stage('Deploy to Kubernetes') {						→ Defines the deployment stage.
+	    steps {
+		script {							→ Runs shell commands.
+		    sh 'kubectl apply -f kubernetes/deployment.yaml'		→ Deploys the application to Kubernetes.
+		}
+	    }
+	}
+     }
+}
+
+🔹GitLab CI/CD - Multi-stage Deployment with Helm
+stages:										→ Defines the pipeline stages.
+  - build									→ First stage builds the application.
+  - push									→ Second stage pushes the Docker image.
+  - deploy									→ Third stage deploys the application.
+
+build:										→ Starts the build job.
+  stage: build
+  script:
+      - docker build -t vishwesh-web-app .					→ Builds the Docker image.
+
+push:										→ Starts the image push job.
+  stage: push
+  script: 
+      - docker login -u "$CI_REGISTRY_USER" -P "$CI_REGISTRY_PASSWORD"		→ Logs in to the Docker registry using CI variables.
+      - docker push vishwesh-web-app						→ Pushes the Docker image to the registry.
+
+deploy:										→ Starts the deployment job.
+  stage: deploy
+  script:
+    - helm upgrade --install vishwesh-nginx vishwesh/nginx-ingress		→ Installs or upgrades the Helm release.
+
+🔹Docker
+#CMD vs ENTRYPOINT
+FROM ubuntu									→ Uses Ubuntu as the base image.
+ENTRYPOINT ["echo"]								→ Sets the main command that always runs when the container starts.		
+CMD ["Hello Vishwesh"]								→ Provides the default argument to the ENTRYPOINT command (can be overridden).
+
+
+
+Remember it as like:
+👨‍💻 Developer → Git Push → Jenkins/GitLab CI → Build → Test → Push Docker Image → Helm Deploy → Kubernetes Ingress → Nginx Reverse Proxy → 🚀 Application Running
