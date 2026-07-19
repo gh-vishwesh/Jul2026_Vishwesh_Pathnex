@@ -1,0 +1,227 @@
+Day12 - Scaling Applications and Automation
+🔹 Ansible - Setup Auto-scaling Group (ASG) [Need Server?
+
+↓
+
+Check Blueprint
+
+↓
+
+Create EC2
+
+↓
+
+Keep Between
+
+1 ←→ 3
+
+Normally = 2]
+- name: Setup Auto Scaling Group						----> Only the title
+  hosts: all									----> Run on every server
+  become: yes									----> become admin
+  tasks:
+    - name: Create Launch Configuration
+      ec2_asg:									----> Special ansible module if users increase create more EC2 servers
+	name: vishwesh-asg							----> name of the auto scaling group
+	region: us-east-1							----> where should AWS create it?
+	launch_config_name: vishwesh-launch-config				----> launch configuration = blueprint
+	min_size: 1								----> never keep less than 1 server
+	max_size: 3								----> never keep more than 3 servers
+	desired_capacity: 2							----> normally just keep 2 running servers
+	vpc_zone_identifier: subnet-12345678					----> which subnet should AWS use?
+
+🔹Terraform - Create a Load Balancer with EC2 Instances [Internet
+
+↓
+
+Load Balancer
+
+↓
+
+EC2-1
+
+↓
+
+EC2-2
+
+↓
+
+EC2-3]
+resource "aws_lb" "vishwesh_lb" {						----> create Load Balancer
+  name			= "vishwesh-lb"
+  internal		= false							----> false means public can access it. internal = true means can't
+  load_balancer_type	= "application"						----> application Load balancer (ALB) used mainly for HTTP/HTTPS traffic.
+  security_groups	= [aws_security_group.allow_ssh_http.id]		----> attach firewall
+  subnets		= [aws_subnet.public.id]				----> which subnet should contain the Load Balancer?
+}
+
+resource "aws_instance" "vishwesh_ec2" {					----> this part I already know how to create EC2.
+  ami 		= "ami-0abc1234abcd1234"
+  instance_type = "t2.micro"
+  security_groups = [aws_security_group.allow_ssh_http.id]
+  tags = {
+    Name = "Vishwesh-EC2"
+  }
+}
+
+🔹Kubernetes - Horizontal Pod Autoscalar (HPA) with Load Balancer [CPU High
+
+↓
+
+Need More Pods
+
+↓
+
+Create Pods
+
+↓
+
+Traffic Balanced ]
+apiVersion: appsv1
+kind: Deployment
+metadata:
+  name: vishwesh-web-app
+spec:
+  replicas: 2									----> start with 2 pods
+  selector: 
+    matchLabels:
+      app: vishwesh-web-app
+  template:
+    metadata:
+      labels:
+        app: vishwesh-web-app
+    spec:
+      containers:
+	- name: web
+	  image: nginx
+	  ports:
+	    - containerPort: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler							----> Automatically increase Pods
+metadata:
+  name: vishwesh-web-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vishwesh-web-app
+  minReplicas: 1								----> minimum one pod
+  maxReplicas: 5								----> maximum 5 pods
+  targetCPUUtilizationPercentage: 80						----> if CPU usage reaches around 80%, create more pod
+
+🔹Jenkinsfile - Implement Parallel Stages
+pipeline {
+    agent any
+    stages {
+        stage('Build & Test') {
+	  parallel {								----> run multiple stages at the same time
+	      stage('Build') {							----> build application
+		steps {
+		    echo 'Building project...'
+		}
+	      }
+	      stage('Test') {							----> run test
+                    steps {
+                        echo 'Running tests...'
+                    }
+                }
+            }
+        }
+        stage('Deploy') {							----> then deploy only after both (build + test) finishes successfully.
+            steps {
+                echo 'Deploying project...'
+            }
+        }
+    }
+}
+
+[Why use parallel stages?
+Answer:To reduce pipeline execution time by running independent tasks simultaneously.]
+
+
+GitLab CI/CD - Parallel Jobs for Build & Test
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+     - docker build -t vishwesh-web-app .
+
+test:
+  stage: test
+  script:
+     - docker run vishwesh-web-app npm test
+
+deploy:
+  stage: deploy
+  script: 
+     - kubectl apply -f Kubernetes/deployment.yml
+
+
+🔹 Docker [Container
+
+↓
+
+Volume
+
+↓
+
+Data Safe
+
+↓
+
+Container Deleted
+
+↓
+
+Data Still Exists]
+# Docker Volumes
+FROM ubuntu								----> Use Ubuntu
+VOLUME ["/opt/vishwesh/data"]						----> create volume : "/opt/vishwesh/data" -  Application stores files here. even if the server dies, data stays
+CMD ["sleep", "1000"] 							----> sleep and just keep container running
+
+# Real Path
+/opt/vishwesh/data							----> application saves data there
+
+# Bash command
+docker volume create vishwesh-volume					----> Create a named Docker Volume.
+
+
+Remember it as like:
+Terraform
+↓
+
+Load Balancer + EC2
+
+↓
+
+Ansible
+↓
+
+Auto Scaling Group
+
+↓
+
+Docker
+↓
+
+Persistent Storage (Volume)
+
+↓
+
+Jenkins / GitLab
+↓
+
+Build + Test + Deploy
+
+↓
+
+Kubernetes
+↓
+
+Auto Scale Pods (HPA)

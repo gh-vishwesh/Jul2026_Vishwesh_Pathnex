@@ -1,0 +1,15 @@
+Day 10
+#Today's agenda
+o 4 hrs watched morning class on Kubernetes on youtube
+o 1.5 prepared notes about kubernetes
+o 0.5 hrs Revised previous notes and practiced
+o 0.5 hrs to make intro video
+o 2 hrs practiced docker 
+o 1 hr coding practiced
+o Approx 1 hrs LINUX COMMANDS, AWS
+
+# Tommorrow's agenda
+do coding practice
+make notes
+learn about kubernetes more
+also revise the topics till taught
