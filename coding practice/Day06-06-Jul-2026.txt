@@ -1,0 +1,85 @@
+Day 06: CODING PRACTIVE
+
+o Ansible - Install Docker
+- name: Install Docker      -----> just title 
+  hosts: all                -----> do it on all computers
+  become: yes               -----> become admin first
+  tasks:                    -----> These are the jobs
+    - name: Install Docker
+      yum:                  -----> as Amazon
+	name: docker	    -----> you tell amazon I want docker
+	state: present      -----> Make sure docker exist if already install do nothing
+    - name: Start Docker
+      service:
+        name: docker
+        state: started        -----> means turn docker on
+        enabled: yes          -----> means start automatically after reboot
+
+Remember it like: Admin->All computers -> Install docker -> Start docker -> Auto Start
+
+o Terraform - Create Infrastructure (Terraform is asking someone to build a house. Instead of building with bricks, you give a blueprint. Terraform reads it and builds everything.)
+
+* Terraform - Provisioning EC2 with VPC
+
+resource "aws_vpc" "main" {           ------> Imagine a huge empty land (VPC), your private land. Nobody else owns it.
+  cidr_block = "10.0.0.0/16"          ------> Think of it as the boundary wall. Computers also need addresses. CIDR decides how many addresses are available.
+}
+
+resource "aws_instance" "vishwesh_ec2" {   ------> Build one computer
+  ami		= "ami-0abc1234abcd1234"   ------> AMI is the operating system image. like android os in new phone.
+  instance_type = "t3.medium"              ------> Size of server (small, medium, large)
+  subnet_id	= aws_subnet.main.id	   ------> small plots (subnets:computer will be build in ne plot) in that huge empty land (VPC)
+  tags = {                                 ------> like writing your name on school bag
+    Name = "vishwesh-EC2"}		   ------> just title
+  }
+}
+
+Remember it like: Land -> Boundary -> small plots -> Build computer -> Give name
+
+o Kubernetes - Pod with Volume Mount (Think of it as a huge apartment, inside it. There are many rooms. Each room is called Pod.
+
+apiVersion: v1
+kind: Pod                                   ------> means create a room
+metadata:
+  name: vishwesh-pod
+spec:
+  containers:				     
+    - name: web
+      image: nginx			    ------> put an Nginx machine inside.
+      volumeMounts:			    ------> where should the container will be placed
+        - mountPath: /usr/share/nginx/html
+	  name: html-volume
+volume:					    ------> where container is actually kept
+  - name: html-volume
+    hostPath:				    ------> Take storage directly from the computer
+      path: /data
+      type: Directory
+
+Remember it like: Computer -> Folder (/data) -> connect folder -> container uses folder
+
+o Shell scipt - Check for Running Services
+#!/bin/bash
+services=("nginx" "docker" "httpd")			-----> make a list
+for service in "${services[@]}"				-----> loop - one by one
+do
+  if systemctl is-active --quiet $services; then        -----> go and see, is it running? if yes!
+    echo "$service is running"                          -----> service is running
+  else 							
+    echo "$service is not running"			-----> else service is not running
+  fi							-----> if ends with fi
+done
+
+Remember it as: List -> Check one by one -> Print result
+
+o Docker (You have a notebook and you want every student to get the exact same notebook)
+# Node.js Application (JavaScript)
+console.log("Hello Vishwesh")				-----> Print Hello Vishwesh
+
+# Docker File						-----> This is the cooking recipe
+FROM node:18						-----> Take one kitchen and kitchen has node.js already installed.
+WORKDIR /opt/vishwesh/node-app				-----> go inside this folder
+COPY app.js /opt/vishwesh/node-app			-----> copy app.js
+CMD ["node", "/opt/vishwesh/node-app/app.js"]		-----> now run it node app.js
+
+# Real Path
+/opt/vishwesh/node-app					-----> The exact location of your files
