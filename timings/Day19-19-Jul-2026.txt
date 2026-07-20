@@ -1,0 +1,12 @@
+Day 19
+#Today's agenda
+o 3 hrs watched Argo CD video on youtube
+o 0.5 hrs to make intro video 
+o 1.5 hr coding practiced
+o 2.5 hr Argo CD practice
+
+# Tommorrow's agenda
+do coding practice
+Get hands on again with helm charts and Argo CD
+learn about CD pipeline more
+also `revise the topics till taught
