@@ -1,0 +1,12 @@
+Day 22
+#Today's agenda
+o 2 hrs watched morning class of Ansible on youtube
+o 0.5 hrs to make intro video 
+o 1.5 hr coding practiced
+o 2.5 hr ansible and terraform practice
+
+# Tommorrow's agenda
+do coding practice
+Get hands on again with kubernetes
+learn about kubernetes more
+also `revise the topics till taught

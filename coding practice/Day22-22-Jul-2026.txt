@@ -1,0 +1,126 @@
+Day 22 - Multi-Cluster Kubernetes Management
+🔹 Ansible - Deploy Nginx Across multiple Kubernetes clusters
+- name: Deploy Nginx across multiple Kubernetes clusters                    # → Gives a name to the Ansible playbook.
+  hosts: localhost                                                          # → Runs the playbook from the Ansible control node.
+  tasks:                                                                    # → Starts the list of automation tasks.
+    - name: Configure kubectl for cluster 1                                 # → Names the task to switch to Cluster 1.
+      command: kubectl --context=us-east config use-context us-east-context # → Switches kubectl to the US East Kubernetes cluster.
+    - name: Deploy Nginx for cluster 1                                      # → Names the deployment task for Cluster 1.
+      command: kubectl apply -f kubernetes/deployment.yaml                  # → Deploys the application to Cluster 1.
+    - name: Configure kubectl for cluster 2
+      command: kubectl --context=us-west config use-context us-west-context
+    - name: Deploy Nginx for cluster 1
+      command: kubectl apply -f kubernetes/deployment.yaml
+
+🔹 Terraform - Multiple-Region Kubernetes Cluster with EKS and GKE
+resource "aws_eks_cluster" "vishwesh_eks" {                                 # → Creates an Amazon EKS cluster.
+  name      = "vishwesh-eks-cluster"                                        # → Sets the EKS cluster name.
+  role_arn  = aws_iam_role.eks_cluster_role.arn                             # → Assigns the IAM role to the EKS cluster.
+
+  vpc_config {                                                              # → Starts the VPC configuration.
+    subnet_ids = [aws_subnet.vishwesh_subnet.id]                            # → Attaches the EKS cluster to the specified subnet.
+  }
+
+  depends_on   = [aws_iam_role_policy_attachment.eks_cluster_role_policy]   # → Creates the cluster only after the IAM role policy is attached.
+}
+
+resource "google_container_cluster" "vishwesh_gke" {
+  name    = "vishwesh-gke-cluster"
+  location = "us-central1-a"
+  initial_node_count = 3                                                    # → Creates three worker nodes initially.
+  node_config {                                                             # → Starts the worker node configuration.
+    machine_type = "n1-standard-1"                                          # → Uses n1-standard-1 virtual machines for worker nodes.
+  }
+}
+
+🔹 Kubernetes - Federated Deployment with Multiple Clusters
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vishwesh-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vishwesh-app
+  template:
+    metadata:
+      labels:
+        app: vishwesh-app
+    spec: 
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: federation.k8s.io/v1beta1
+kind: FederatedDeployment
+metadata:
+  name: vishwesh-federated-deployment
+  namespace: default
+spec:
+  template:
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: vishwesh-app
+      template:
+        metadata:
+          labels:
+            app: vishwesh-app
+        spec:
+          containers:
+            - name: nginx
+              image: nginx
+              ports:
+                - containerPort: 80
+
+🔹 Jenkinsfile - Multi-Cluster Deployment Strategy
+pipeline {
+    agent any
+    stages {
+        stage('Deploy to Cluster 1') {                                        # → Defines deployment to Cluster 1.
+            steps {
+                script {
+                    sh 'kubectl --context=us-east-cluster apply -f kubernetes/deployment.yaml'    # → Deploys the application to the US East Kubernetes cluster.
+                }
+            }
+        }
+        stage('Deploy to Cluster 2') {
+            steps {
+                script {
+                    sh 'kubectl --context=us-west-cluster apply -f kubernetes/deployment.yaml'
+                }
+            }
+        }
+    }
+}
+
+🔹 GitLab CI/CD - Multi-Cluster Deployment Strategy
+stages:
+  - deploy
+
+deploy_cluster_1:
+  stage: deploy
+  script:
+    - kubectl --context=us-east-cluster apply -f kubernetes/deployment.yaml   # → Deploys the application to the US East cluster.
+
+deploy_cluster_2:
+  stage: deploy
+  script:
+    - kubectl --context=us-west-cluster apply -f kubernetes/deployment.yaml
+
+
+🔹 Docker
+# Compose with MySQL
+version: '3'                                                                  # → Specifies Docker Compose file version 3.
+services:                                                                     # → Defines the list of services (containers).
+  db:                                                                         # → Creates a database service named db.
+    image: mysql:8                                                            # → Uses the official MySQL 8 Docker image.
+    container_name: vishwesh-db                                               # → Assigns the container name vishwesh-db.
+
+Remember it as like:
+👨‍💻 Developer → Git Push → Jenkins/GitLab CI → Deploy to US East Cluster → Deploy to US West Cluster → Terraform (Create EKS + GKE Clusters) → Ansible (Switch Context & Deploy) → Kubernetes Federation (Deploy Across Multiple Clusters) → Docker Compose (MySQL Database) → 🚀 Application Running Across Multiple Clusters
