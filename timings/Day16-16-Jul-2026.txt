@@ -1,0 +1,11 @@
+Day 16
+#Today's agenda
+o 0.5 hrs to make intro video 
+o 1 hr coding practiced
+o 4 hr kubernetes practice
+
+# Tommorrow's agenda
+do coding practice
+Get hands on again with kubernetes
+learn about kubernetes more
+also `revise the topics till taught
