@@ -1,0 +1,112 @@
+Day 21 - Disaster Recovery and Backup Strategies
+
+🔹Ansible - Backup and Restore Files
+
+- name: Backup and Restore Files                                    # → Gives a name to the Ansible playbook.
+  hosts: all
+  become: yes
+  tasks:                                                            # → Starts the list of automation tasks.
+    - name: Create backup of /etc directory                         # → Names the task to back up the /etc directory.
+      commandL tar -czvf /tmp/etc-backup.tar.gz /etc                # → Creates a compressed backup of the /etc directory.
+    - name: Copy backup to remote server                            # → Names the task to copy the backup file.
+      copy:                                                         # → Copies files from the Ansible control node to the target server.
+        src: /tmp/etc-backup.tar.gz                                 # → Specifies the source backup file.
+        dest: /tmp/etc-backup.tar.gz                                # → Specifies the destination path on the remote server.
+    - name: Restore backup from remote server                       # → Names the task to restore the backup.
+      command: tar -xzvf /tmp/etc-backup.tar.gz -C /                # → Extracts the backup to the root filesystem.
+    
+🔹Terraform - Create S3 bucket with Cross-Region Replica
+resource "aws_s3_bucket" "vishwesh-bucket" {                        # → Creates an AWS S3 bucket.
+    bucket = "vishwesh-backup-bucket"                               # → Sets the S3 bucket name.
+    region = "us-east-1"
+
+    versioning {                                                    # → Enables object versioning for backup recovery.
+        enabled = true
+    }
+}
+
+resource "aws_s3_bucket" "vishwesh_backup_file" {                   # → Uploads a backup file to the S3 bucket.
+    bucket = aws-s3-bucket.vishwesh_bucket.bucket                   # → Specifies the destination S3 bucket.
+    key    = "backup.tar.gz"                                        # → Stores the file using this object name.
+    source = "vishwesh-backup.tar.gz"                               # → Stores the file using this object name.
+}
+
+🔹Kubernetes - Disaster Recovery with Persistant Volumes
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vishwesh-statefulset
+spec: 
+  serviceName: "vishwesh"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vishwesh
+  template:
+    metadata:
+      labels:
+        app: vishwesh
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:                                             # → Mounts persistent storage into the container.
+            - mountPath: /usr/share/nginx/html                      # → Mounts storage at the web content directory.
+              name: web-content                                     # → Refers to the Persistent Volume Claim.
+volumeClaimTemplates:                                               # → Automatically creates Persistent Volume Claims for each Pod.
+- metadata:
+    name: web-content
+  spec: 
+    accessModes: [ "ReadWriteOnce" ]                                # → Allows one node to mount the volume for read/write.
+    resources:
+      requests:
+        storage: 5Gi                                                # → Requests a 5 GiB Persistent Volume.
+
+🔹Jenkinsfile - Backup Strategy for Jenkins Workspace
+pipeline {
+    agent any
+    stages {
+        stage('Backup') {
+            steps {
+                echo 'Backing up Jenkins workspace...'              # → Prints the backup message.
+                sh 'tar -czvf /tmp/jenkins-backup.tar.gz ${WORKSPACE}'  # → Creates a compressed backup of the Jenkins workspace.
+            }
+        }
+        stage('Restore') {
+            steps {
+                echo 'Restoring Jenkins workspace...'               # → Prints the restore message.
+                sh 'tar -xzvf /tmp/jenkins-backup.tar.gz -C ${WORKSPACE}'  # → Restores the deployment file into the Kubernetes directory.
+            }
+        }
+    }
+}
+
+🔹 GitLab CI/CD - Backup and Restore Deployment Files
+stages:
+  - backup
+  - restore
+
+backup:
+  stage: backup
+  scipt:
+    - tar -czvf /tmp/jenkins-backup.tar.gz kubernetes/deployment.yaml
+
+restore:
+  stage: restore
+  script:
+    - tar -xzvf /tmp/jenkins-backup.tar.gz -C kubernetes/
+
+🔹 Docker
+# Docker Compose
+version: '3'
+services:
+  web:
+    image: nginx
+    container_name: vishwesh-nginx
+    ports: 
+      - "80:80"                                                         # → Maps host port 80 to container port 80.
+
+
+
+Remember it as like:
+👨‍💻 Developer → Backup Configuration → Jenkins/GitLab Backup → Docker Compose → Terraform (S3 Backup Storage) → Ansible (Backup & Restore Files) → Kubernetes (StatefulSet + Persistent Volumes) → Disaster Recovery → 🚀 Application Restored & Running
